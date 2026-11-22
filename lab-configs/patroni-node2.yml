@@ -1,0 +1,86 @@
+# Patroni node 2 template (<standby_host>) for PostgreSQL 17 baseline.
+# Repository: https://github.com/irizarryjc/postgresql-ha-dr-labs
+# File permissions on lab hosts: chmod 0600 /etc/patroni/patroni.yml
+# Replace all <placeholder> values before starting patroni.service.
+
+scope: "<scope_name>"
+namespace: "/service/"
+name: "pg-node2"
+
+restapi:
+  listen: "0.0.0.0:8008"
+  connect_address: "<standby_host>:8008"
+  authentication:
+    username: "patroni_api"
+    password: "<patroni_api_password>"
+
+etcd3:
+  hosts:
+    - "<dcs1_host>:2379"
+    - "<dcs2_host>:2379"
+    - "<dcs3_host>:2379"
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    # Review Chapter 6 and official Patroni failsafe docs before enabling.
+    failsafe_mode: false
+    synchronous_mode: false
+    synchronous_mode_strict: false
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: "replica"
+        hot_standby: "on"
+        max_connections: 200
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_log_hints: "on"
+        full_page_writes: "on"
+        max_slot_wal_keep_size: "2GB"
+        archive_mode: "on"
+        archive_command: "pgbackrest --stanza=<stanza_name> archive-push %p"
+        password_encryption: "scram-sha-256"
+
+  initdb:
+    - encoding: "UTF8"
+    - data-checksums
+
+  pg_hba:
+    - "local all postgres peer"
+    - "host replication replicator 127.0.0.1/32 scram-sha-256"
+    - "host replication replicator <primary_host>/32 scram-sha-256"
+    - "host replication replicator <standby_host>/32 scram-sha-256"
+    - "host replication replicator <replica2_host>/32 scram-sha-256"
+    - "host all all 127.0.0.1/32 scram-sha-256"
+    - "host all all <router1_host>/32 scram-sha-256"
+    - "host all all <router2_host>/32 scram-sha-256"
+
+postgresql:
+  listen: "0.0.0.0:5432"
+  connect_address: "<standby_host>:5432"
+  data_dir: "/var/lib/postgresql/17/data"
+  bin_dir: "/usr/lib/postgresql/17/bin"
+  pgpass: "/var/lib/postgresql/.pgpass_patroni"
+  authentication:
+    replication:
+      username: "replicator"
+      password: "<repl_password>"
+    superuser:
+      username: "postgres"
+      password: "<superuser_password>"
+    rewind:
+      username: "rewind_user"
+      password: "<rewind_password>"
+  parameters:
+    unix_socket_directories: "/var/run/postgresql"
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
