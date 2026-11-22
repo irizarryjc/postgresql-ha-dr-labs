@@ -1,10 +1,9 @@
 # Patroni node 3 template (<replica2_host>) for PostgreSQL 17 baseline.
-# Third local Patroni member used in Chapter 6 (optional) and Chapter 8 (Lab L7).
-# For the Chapter 10 remote-site (Site B) design, reconfigure this node per Ch. 10
-# (for example as a Patroni standby_cluster) instead of joining it to the Site A scope.
 # Repository: https://github.com/irizarryjc/postgresql-ha-dr-labs
 # File permissions on lab hosts: chmod 0600 /etc/patroni/patroni.yml
 # Replace all <placeholder> values before starting patroni.service.
+# Note: In Chapter 10 Site B DR drills (Labs L9-L10), <replica2_host> is
+# reconfigured as a remote Site B async standby or standby cluster.
 
 scope: "<scope_name>"
 namespace: "/service/"
